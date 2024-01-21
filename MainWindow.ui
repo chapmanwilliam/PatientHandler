@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>600</height>
+    <height>753</height>
    </rect>
   </property>
   <property name="acceptDrops">
@@ -23,12 +23,34 @@
       <x>30</x>
       <y>30</y>
       <width>711</width>
-      <height>481</height>
+      <height>291</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout">
      <item>
-      <widget class="QComboBox" name="comboBoxPatients"/>
+      <widget class="QLineEdit" name="lineEditName">
+       <property name="font">
+        <font>
+         <family>Abadi MT Condensed Extra Bold</family>
+         <pointsize>24</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QListWidget" name="listWidgetPatients"/>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxPatients">
+       <property name="font">
+        <font>
+         <family>Abadi MT Condensed Extra Bold</family>
+         <pointsize>24</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButton_LetterNew">
@@ -51,25 +73,47 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QLabel" name="label_DragDrop">
-       <property name="font">
-        <font>
-         <family>Abadi MT Condensed Extra Bold</family>
-         <pointsize>72</pointsize>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="acceptDrops">
-        <bool>false</bool>
-       </property>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="gridLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>340</y>
+      <width>711</width>
+      <height>326</height>
+     </rect>
+    </property>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="labelAddress">
        <property name="text">
-        <string>DROP FILES HERE</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
+        <string>Addresses:</string>
        </property>
       </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QListWidget" name="listWidgetAddresses">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::MultiSelection</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0">
+      <widget class="QLabel" name="labelEmails">
+       <property name="text">
+        <string>Emails:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QListWidget" name="listWidgetEmails"/>
      </item>
     </layout>
    </widget>
