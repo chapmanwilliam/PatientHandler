@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <widget class="QWidget" name="verticalLayoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>30</y>
+      <width>711</width>
+      <height>481</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QComboBox" name="comboBoxPatients"/>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_LetterNew">
+       <property name="text">
+        <string>NEW PATIENT LETTER</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_LetterFollowUp">
+       <property name="text">
+        <string>FOLLOW UP PATIENT LETTER</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_LetterPrescription">
+       <property name="text">
+        <string>PRESCRIPTION</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="font">
+        <font>
+         <family>Abadi MT Condensed Extra Bold</family>
+         <pointsize>72</pointsize>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="acceptDrops">
+        <bool>true</bool>
+       </property>
+       <property name="text">
+        <string>DROP FILES HERE</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>800</width>
+     <height>24</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionMenu"/>
+    <addaction name="actionWhatever"/>
+    <addaction name="actionAnd_this"/>
+    <addaction name="actionAnd_that"/>
+    <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menuMenu">
+    <property name="title">
+     <string>Menu</string>
+    </property>
+    <addaction name="actionWhen"/>
+    <addaction name="separator"/>
+    <addaction name="actionso"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuMenu"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionMenu">
+   <property name="text">
+    <string>Menu</string>
+   </property>
+  </action>
+  <action name="actionWhatever">
+   <property name="text">
+    <string>Whatever</string>
+   </property>
+  </action>
+  <action name="actionAnd_this">
+   <property name="text">
+    <string>And this</string>
+   </property>
+  </action>
+  <action name="actionAnd_that">
+   <property name="text">
+    <string>And that</string>
+   </property>
+  </action>
+  <action name="actionWhen">
+   <property name="text">
+    <string>When</string>
+   </property>
+  </action>
+  <action name="actionso">
+   <property name="text">
+    <string>so</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
