@@ -31,5 +31,5 @@ def executeScriptsFromFile(filename, search=""):
             print("Command skipped: ", msg)
     return result
 
-print (executeScriptsFromFile('List Patients Containing.sql').fetchall())
+print (executeScriptsFromFile('SQL/List Patients Containing.sql').fetchall())
 

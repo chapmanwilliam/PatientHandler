@@ -4,6 +4,7 @@ from PyQt6.QtCore import QSortFilterProxyModel, Qt
 import sys
 import os, subprocess, platform
 from os import sep
+from datetime import datetime
 import dropbox as Dropbox
 from dropbox.exceptions import ApiError
 from dropbox.files import WriteMode
@@ -34,38 +35,45 @@ class MainUI(QMainWindow):
         self.dbx = Dropbox.Dropbox(
             'sl.BuEy6m4MyrTS9zLRh0m_BPO9vtOpX-zctYyDr16tXSxropBR4SUZw6-CUQexaKwoM9CUd1MO6iAA-rqVL2gkRV35qvFJ36EyGv3GkAq-GRgjkrRwVVbrlbloFuwPEnJH5kcEIVYQ9QVSlxYeymYl')
 
-        self.fillComboBox()
         self.fillListBox()
 
+    def refreshMain(self):
+        self.fillAddresses()
+        self.fillEmails()
+        self.fillDoctors()
+        print(self.getPatientFolder())
+
+    def getPatientFolder(self):
+        if self.patientID==-1: return None
+        items=self.listWidgetPatients.selectedItems()
+        if len(items)>0:
+            name=items[0].data(0)
+            id=self.patientID
+            return os.path.join(getAppPath(), name + " {PID" + str(id).zfill(6) + "}")
+
+    def getTimeStamp(self):
+        t=datetime.now()
+        return t.strftime('"%y-%m-%d %H%M"').replace('\"',"")
+
     def sync_lineEdit(self):
-        self.fillComboBox()
         self.fillListBox()
-        self.comboBoxPatients.setCurrentIndex(0)
         self.listWidgetPatients.setCurrentRow(0)
         items=self.listWidgetPatients.selectedItems()
         self.patientID=-1 #default none selected
         if len(items)>0: self.patientID=items[0].value
         print(self.patientID)
-        self.fillAddresses()
-        self.fillEmails()
+        self.refreshMain()
 
     def listPatientsClicked(self):
         items=self.listWidgetPatients.selectedItems()
         self.patientID=-1 #default none selected
         if len(items)>0: self.patientID=items[0].value
         print(self.patientID)
-        self.fillAddresses()
-        self.fillEmails()
-
-    def fillComboBox(self):
-        self.comboBoxPatients.clear()
-        result=RunScript('List Patients Containing.sql',self.lineEditName.text())
-        for i in result:
-            self.comboBoxPatients.addItem(i[1],i[0])
+        self.refreshMain()
 
     def fillListBox(self):
         self.listWidgetPatients.clear()
-        result = RunScript('List Patients Containing.sql',self.lineEditName.text())
+        result = RunScript('SQL/List Patients Containing.sql', self.lineEditName.text())
         for i in result:
             item = QListWidgetItem(i[1])
             item.value=i[0] #the patient id
@@ -74,7 +82,7 @@ class MainUI(QMainWindow):
     def fillAddresses(self):
         self.listWidgetAddresses.clear()
         if self.patientID==-1: return
-        result = RunScript('Addresses Patient.sql',self.patientID)
+        result = RunScript('SQL/Addresses Patient.sql', self.patientID)
         for i in result:
             item=QListWidgetItem(i[1])
             item.value=i[0]
@@ -83,11 +91,20 @@ class MainUI(QMainWindow):
     def fillEmails(self):
         self.listWidgetEmails.clear()
         if self.patientID==-1: return
-        result = RunScript('Emails Patient.sql',self.patientID)
+        result = RunScript('SQL/Emails Patient.sql', self.patientID)
         for i in result:
             item=QListWidgetItem(i[1])
             item.value=i[0]
             self.listWidgetEmails.addItem(item)
+
+    def fillDoctors(self):
+        self.listWidgetReferringDoctors.clear()
+        if self.patientID==-1: return
+        result = RunScript('SQL/Doctors Patient.sql', self.patientID)
+        for i in result:
+            item=QListWidgetItem(i[1])
+            item.value=i[0]
+            self.listWidgetReferringDoctors.addItem(item)
 
 
     def openWord(self, filepath):
@@ -140,26 +157,38 @@ class MainUI(QMainWindow):
             shutil.copy(path, os.path.join(dest_dir, '{} v{}{}'.format(base, i, extension)))
             return os.path.join(dest_dir, '{} v{}{}'.format(base, i, extension))
 
+    def Letter(self,type):
+        if self.patientID==-1: return
+        f=None
+        g='generic'
+        PID="{"+str(self.patientID).zfill(6)+"}"
+        match type:
+            case 'NEW':
+                f=os.path.join("Letters","NEW PATIENT LETTER.docx")
+                g="new"
+            case "FOLLOW_UP":
+                f=os.path.join("Letters","FOLLOW UP PATIENT LETTER.docx")
+                g="follow up"
+            case "PRESCRIPTION":
+                f=os.path.join("Letters", "PRESCRIPTION LETTER.docx")
+                g="prescrition"
+            case _:
+                return
+        Path(self.getPatientFolder()).mkdir(parents=True, exist_ok=True)
+        destpath = os.path.join(self.getPatientFolder(),self.getTimeStamp() + " " + g + " " + PID + '.docx')
+        print(destpath)
+        d=self.safeCopyFile(f, destpath)
+        self.openWord(d)
+
+
     def NewLetter(self):
-        print('hello new')
-        filepath = "Letters/NEW PATIENT LETTER.docx"
-        destpath = getAppPath() + "/test.docx"
-        f=self.safeCopyFile(filepath, destpath)
-        self.openWord(f)
+        self.Letter('NEW')
 
     def FollowUpLetter(self):
-        print('hello follow up')
-        filepath = "Letters/FOLLOW UP PATIENT LETTER.docx"
-        destpath = getAppPath() + "/test.docx"
-        f=self.safeCopyFile(filepath, destpath)
-        self.openWord(f)
+        self.Letter('FOLLOW_UP')
 
     def PrescriptionLetter(self):
-        print('hello prescription')
-        filepath = "Letters/PRESCRIPTION LETTER.docx"
-        destpath = getAppPath() + "/test.docx"
-        f=self.safeCopyFile(filepath, destpath)
-        self.openWord(f)
+        self.Letter("PRESCRIPTION")
 
     # Drag and drop
     def dragEnterEvent(self, event):
@@ -169,10 +198,14 @@ class MainUI(QMainWindow):
             event.ignore()
 
     def dropEvent(self, event):
+        #TODO: check the file is fully downloaded from Dropbox
+        if self.patientID==-1: return
+        PID="{"+str(self.patientID).zfill(6)+"}"
         files = [u.toLocalFile() for u in event.mimeData().urls()]
         for f in files:
             name = os.path.basename(f)
-            dest = os.path.join(getAppPath(), name)
+            base, extension = os.path.splitext(name)
+            dest = os.path.join(self.getPatientFolder(), self.getTimeStamp() + " " + base + " " + PID + extension)
             self.safeCopyFile(f, dest)
             print(dest)
 
