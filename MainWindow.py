@@ -14,5 +14,3 @@ if __name__ == '__main__':
     ui = MainUI()
     ui.show()
     app.exec()
-
-ssd
