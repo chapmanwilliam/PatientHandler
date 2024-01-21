@@ -10,6 +10,9 @@
     <height>600</height>
    </rect>
   </property>
+  <property name="acceptDrops">
+   <bool>true</bool>
+  </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
@@ -49,7 +52,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="label_DragDrop">
        <property name="font">
         <font>
          <family>Abadi MT Condensed Extra Bold</family>
@@ -58,7 +61,7 @@
         </font>
        </property>
        <property name="acceptDrops">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="text">
         <string>DROP FILES HERE</string>
