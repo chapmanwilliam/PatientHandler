@@ -1,0 +1,3 @@
+INSERT INTO
+EMAILS
+VALUES ("",?,1)

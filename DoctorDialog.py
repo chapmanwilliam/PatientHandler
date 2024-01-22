@@ -9,11 +9,6 @@ class DoctorDialog(EditDialog):
         super().__init__(parent,doctorID,ui)
         self.loadText()
 
-        self.pushButton_SAVE.clicked.connect(self.save)
-        self.pushButton_OK.clicked.connect(self.OK)
-        self.pushButton_DELETE.clicked.connect(self.delete)
-        self.pushButton_ADD.clicked.connect(self.add)
-
     def getdicData(self):
         d = {}
         for w in self.findChildren(QLineEdit):

@@ -1,0 +1,3 @@
+INSERT INTO
+TEL_NOS
+VALUES (?,"",1)

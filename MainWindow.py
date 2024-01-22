@@ -14,6 +14,9 @@ from SQL import executeScriptsFromFile as RunScript
 from docxtpl import DocxTemplate
 import json
 from DoctorDialog import DoctorDialog
+from AddressDialog import AddressDialog
+from EmailDialog import EmailDialog
+from TelephoneDialog import TelephoneDialog
 
 INFO_PATHS = ["%APPDATA%\Dropbox\info.json",
               "%LOCALAPPDATA%\Dropbox\info.json", " ~/.dropbox/info.json"]
@@ -42,6 +45,9 @@ class MainUI(QMainWindow):
         self.listWidgetTel.itemClicked.connect(self.listTelsChanged)
 
         self.listWidgetReferringDoctors.itemDoubleClicked.connect(self.listReferringDoctorsDblClicked)
+        self.listWidgetAddresses.itemDoubleClicked.connect(self.listAddressesDblClicked)
+        self.listWidgetEmails.itemDoubleClicked.connect(self.listEmailsDblClicked)
+        self.listWidgetTel.itemDoubleClicked.connect(self.listTelsDblClicked)
 
 
 
@@ -127,10 +133,22 @@ class MainUI(QMainWindow):
             result=RunScript('SQL/UpdateReferringDoctorsUsed.sql', (x, self.patientID, item.value))
         return
 
+    def listAddressesDblClicked(self,item):
+        dlg=AddressDialog(self,item.value,"AddressDialog.ui")
+        dlg.exec()
+
     def listReferringDoctorsDblClicked(self,item):
         dlg=DoctorDialog(self, item.value, "DoctorDialog.ui")
         dlg.exec()
-        print(item.value)
+
+    def listEmailsDblClicked(self,item):
+        dlg=EmailDialog(self, item.value, "EmailDialog.ui")
+        dlg.exec()
+
+    def listTelsDblClicked(self,item):
+        dlg=TelephoneDialog(self, item.value, "TelephoneDialog.ui")
+        dlg.exec()
+
     def fillComboBoxLocations(self):
         self.comboBoxLocation.clear()
         result = RunScript('SQL/All Locations.sql')
