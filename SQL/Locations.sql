@@ -1,0 +1,6 @@
+SELECT
+    ROWID, Name, Address, TEL_NO
+FROM
+    LOCATIONS
+WHERE ROWID=?
+ORDER BY Name

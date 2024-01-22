@@ -10,7 +10,7 @@ def getCursor():
     connection.row_factory = sqlite3.Row
     cursor=connection.cursor()
     return cursor
-def executeScriptsFromFile(filename, search=""):
+def executeScriptsFromFile(filename, search=None):
     # Open and read the file as a single buffer
     fd = open(filename, 'r')
     sqlFile = fd.read()
@@ -19,7 +19,10 @@ def executeScriptsFromFile(filename, search=""):
     # all SQL commands (split on ';')
     sqlCommands = sqlFile.split(';')
 
-    cursor=getCursor()
+    connection=getConnection()
+    connection.row_factory=sqlite3.Row
+    cursor=connection.cursor()
+
 
     # Execute every command from the input file
     for command in sqlCommands:
@@ -27,10 +30,29 @@ def executeScriptsFromFile(filename, search=""):
         # For example, if the tables do not yet exist, this will skip over
         # the DROP TABLE commands
         try:
-            result=cursor.execute(command, (search,))
+            if search is None:
+                result=cursor.execute(command)
+            else:
+                result = cursor.execute(command, search)
         except OperationalError as msg:
             print("Command skipped: ", msg)
+            return None
+    connection.commit()
     return result
 
-print (executeScriptsFromFile('SQL/List Patients Containing.sql').fetchall())
+def getLastRowInsertID(table_name):
+    # Open and read the file as a single buffer
 
+
+    # all SQL commands (split on ';')
+
+    connection=getConnection()
+    connection.row_factory=sqlite3.Row
+    cursor=connection.cursor()
+    command="SELECT max(rowid) FROM " + table_name
+    cursor.execute(command)
+    max_id = cursor.fetchone()[0]
+    return max_id
+
+#print (executeScriptsFromFile('SQL/All Locations.sql').fetchall())
+print (getLastRowInsertID("DOCTORS"))
