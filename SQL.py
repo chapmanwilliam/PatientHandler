@@ -7,6 +7,7 @@ def getConnection():
 
 def getCursor():
     connection = getConnection()
+    connection.row_factory = sqlite3.Row
     cursor=connection.cursor()
     return cursor
 def executeScriptsFromFile(filename, search=""):

@@ -11,6 +11,7 @@ from dropbox.files import WriteMode
 from pathlib import Path
 import shutil
 from SQL import executeScriptsFromFile as RunScript
+from docxtpl import DocxTemplate
 import json
 
 INFO_PATHS = ["%APPDATA%\Dropbox\info.json",
@@ -33,7 +34,7 @@ class MainUI(QMainWindow):
         self.listWidgetPatients.clicked.connect(self.listPatientsClicked)
         self.patientID=-1
         self.dbx = Dropbox.Dropbox(
-            'sl.BuEy6m4MyrTS9zLRh0m_BPO9vtOpX-zctYyDr16tXSxropBR4SUZw6-CUQexaKwoM9CUd1MO6iAA-rqVL2gkRV35qvFJ36EyGv3GkAq-GRgjkrRwVVbrlbloFuwPEnJH5kcEIVYQ9QVSlxYeymYl')
+            'ABC')
 
         self.fillListBox()
 
@@ -162,22 +163,33 @@ class MainUI(QMainWindow):
         f=None
         g='generic'
         PID="{"+str(self.patientID).zfill(6)+"}"
+        context=None
         match type:
             case 'NEW':
                 f=os.path.join("Letters","NEW PATIENT LETTER.docx")
                 g="new"
+                result = RunScript('SQL/Details New Letter.sql', self.patientID)
+                x=result.fetchall()
+                print('hello')
+                print(x[0])
+                context = {"name": x[0]}
             case "FOLLOW_UP":
                 f=os.path.join("Letters","FOLLOW UP PATIENT LETTER.docx")
                 g="follow up"
+                context = {"company_name": "The Company"}
             case "PRESCRIPTION":
                 f=os.path.join("Letters", "PRESCRIPTION LETTER.docx")
                 g="prescrition"
+                context = {'company_name': "The Company"}
             case _:
                 return
         Path(self.getPatientFolder()).mkdir(parents=True, exist_ok=True)
         destpath = os.path.join(self.getPatientFolder(),self.getTimeStamp() + " " + g + " " + PID + '.docx')
         print(destpath)
         d=self.safeCopyFile(f, destpath)
+#        doc = DocxTemplate(d)
+#        doc.render(context)
+#        doc.save(d)
         self.openWord(d)
 
 
