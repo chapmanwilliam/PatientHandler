@@ -18,6 +18,8 @@ class EditDialog(QDialog):
         self.pushButton_DELETE.clicked.connect(self.delete)
         self.pushButton_ADD.clicked.connect(self.add)
 
+        if ID==-1: self.add()
+
     def getdicData(self):
         d = {}
         for w in self.findChildren(QLineEdit):

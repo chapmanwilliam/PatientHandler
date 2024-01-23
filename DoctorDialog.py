@@ -47,6 +47,7 @@ class DoctorDialog(EditDialog):
 
     def loadText(self):
         result = RunScript("SQL/GetDoctor.sql", (self.ID,)).fetchone()
+        if result == None: return
         self.lineEditTitle.setText(result['Title'])
         self.lineEditFirstName.setText(result['FirstName'])
         self.lineEditSecondName.setText(result['SecondName'])

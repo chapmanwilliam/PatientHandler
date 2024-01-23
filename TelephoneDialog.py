@@ -21,6 +21,7 @@ class TelephoneDialog(EditDialog):
         #This adds a new doctor and makes that doctor one of this patients doctors
         result = RunScript("SQL/AddTelephone.sql",(self.parent.patientID,)) #Add a blank address
         if not result: return
+        self.pushButton_ADD.setEnabled(False)
         self.ID=getLastRowInsertID('TEL_NOS')
         self.loadText()
         self.parent.fillTel()
@@ -40,4 +41,5 @@ class TelephoneDialog(EditDialog):
 
     def loadText(self):
         result = RunScript("SQL/GetTelephone.sql", (self.ID,)).fetchone()
+        if result == None: return
         self.lineEditTelephone.setText(result['TEL_NO'])

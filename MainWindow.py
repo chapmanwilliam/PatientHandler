@@ -63,9 +63,20 @@ class MainUI(QMainWindow):
         self.pushButton_ChangePhoto.clicked.connect(self.addHeadPhoto)
         self.pushButton_RemovePhoto.clicked.connect(self.removeHeadPhoto)
 
+        address_action=QAction("Add",self)
+        email_action=QAction("Add",self)
+        doctor_action=QAction("Add",self)
+        telephone_action=QAction("Add",self)
 
+        address_action.triggered.connect(self.addAddress)
+        email_action.triggered.connect(self.addEmail)
+        doctor_action.triggered.connect(self.addDoctor)
+        telephone_action.triggered.connect(self.addTelephone)
 
-
+        self.listWidgetAddresses.addAction(address_action)
+        self.listWidgetEmails.addAction(email_action)
+        self.listWidgetReferringDoctors.addAction(doctor_action)
+        self.listWidgetTel.addAction(telephone_action)
 
         self.patientID = -1
         self.locationID = -1
@@ -74,6 +85,27 @@ class MainUI(QMainWindow):
 
         self.fillPatients()
         self.fillComboBoxLocations()
+
+    def addAddress(self):
+        if self.patientID==-1: return
+        dlg=AddressDialog(self,-1,"AddressDialog.ui")
+        dlg.exec()
+
+    def addEmail(self):
+        if self.patientID==-1: return
+        dlg=EmailDialog(self,-1,"EmailDialog.ui")
+        dlg.exec()
+
+    def addDoctor(self):
+        if self.patientID==-1: return
+        dlg=DoctorDialog(self,-1,"DoctorDialog.ui")
+        dlg.exec()
+
+    def addTelephone(self):
+        if self.patientID==-1: return
+        dlg=TelephoneDialog(self,-1,"TelephoneDialog.ui")
+        dlg.exec()
+
 
     def refreshMain(self):
         self.fillAddresses()

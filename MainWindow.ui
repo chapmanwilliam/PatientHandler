@@ -191,6 +191,9 @@
          <height>100</height>
         </size>
        </property>
+       <property name="contextMenuPolicy">
+        <enum>Qt::ActionsContextMenu</enum>
+       </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::SingleSelection</enum>
        </property>
@@ -222,6 +225,9 @@
          <width>16777215</width>
          <height>100</height>
         </size>
+       </property>
+       <property name="contextMenuPolicy">
+        <enum>Qt::ActionsContextMenu</enum>
        </property>
       </widget>
      </item>
@@ -260,6 +266,9 @@
            <height>100</height>
           </size>
          </property>
+         <property name="contextMenuPolicy">
+          <enum>Qt::ActionsContextMenu</enum>
+         </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::SingleSelection</enum>
          </property>
@@ -297,6 +306,9 @@
            <width>16777215</width>
            <height>100</height>
           </size>
+         </property>
+         <property name="contextMenuPolicy">
+          <enum>Qt::ActionsContextMenu</enum>
          </property>
          <property name="selectionMode">
           <enum>QAbstractItemView::SingleSelection</enum>

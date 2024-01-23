@@ -40,4 +40,5 @@ class EmailDialog(EditDialog):
 
     def loadText(self):
         result = RunScript("SQL/GetEmail.sql", (self.ID,)).fetchone()
+        if result == None: return
         self.lineEditEmail.setText(result['Email'])
