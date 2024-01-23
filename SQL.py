@@ -54,5 +54,10 @@ def getLastRowInsertID(table_name):
     max_id = cursor.fetchone()[0]
     return max_id
 
-#print (executeScriptsFromFile('SQL/All Locations.sql').fetchall())
-print (getLastRowInsertID("DOCTORS"))
+def convert_into_binary(file_path):
+  with open(file_path, 'rb') as file:
+    binary = file.read()
+  return binary
+
+#print (executeScriptsFromFile('SQL/DeletePatient.sql',(3,)).fetchall())
+#print (getLastRowInsertID("DOCTORS"))

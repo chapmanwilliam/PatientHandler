@@ -20,6 +20,7 @@ class DoctorDialog(EditDialog):
         #This adds a new doctor and makes that doctor one of this patients doctors
         result = RunScript("SQL/AddDoctor.sql") #Add a blank doctor
         if not result: return
+        self.pushButton_ADD.setEnabled(False)
         self.ID=getLastRowInsertID('DOCTORS')
         result = RunScript("SQL/AddReferringDoctor.sql",(self.parent.patientID,self.ID))  # Add a referring doctor
         if not result: return

@@ -21,6 +21,7 @@ class AddressDialog(EditDialog):
         #This adds a new doctor and makes that doctor one of this patients doctors
         result = RunScript("SQL/AddAddress.sql",(self.parent.patientID,)) #Add a blank address
         if not result: return
+        self.pushButton_ADD.setEnabled(False)
         self.ID=getLastRowInsertID('ADDRESSES')
         self.loadText()
         self.parent.fillAddresses()

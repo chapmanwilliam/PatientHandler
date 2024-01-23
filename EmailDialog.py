@@ -21,6 +21,7 @@ class EmailDialog(EditDialog):
         #This adds a new doctor and makes that doctor one of this patients doctors
         result = RunScript("SQL/AddEmail.sql",(self.parent.patientID,)) #Add a blank address
         if not result: return
+        self.pushButton_ADD.setEnabled(False)
         self.ID=getLastRowInsertID('EMAILS')
         self.loadText()
         self.parent.fillEmails()

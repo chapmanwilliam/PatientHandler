@@ -1,6 +1,7 @@
-from PyQt6.QtWidgets import QMainWindow, QApplication, QListWidgetItem, QListWidget, QDialog, QLineEdit
+from PyQt6.QtWidgets import QMainWindow, QApplication, QGraphicsScene, QWidget, QListWidgetItem, QFileDialog, QGraphicsPixmapItem
 from PyQt6.uic import loadUi
-from PyQt6.QtCore import QSortFilterProxyModel, Qt
+from PyQt6 import QtCore
+from PyQt6.QtGui import *
 import sys
 import os, subprocess, platform
 from os import sep
@@ -10,13 +11,17 @@ from dropbox.exceptions import ApiError
 from dropbox.files import WriteMode
 from pathlib import Path
 import shutil
-from SQL import executeScriptsFromFile as RunScript
+from SQL import executeScriptsFromFile as RunScript, convert_into_binary
 from docxtpl import DocxTemplate
 import json
 from DoctorDialog import DoctorDialog
 from AddressDialog import AddressDialog
 from EmailDialog import EmailDialog
 from TelephoneDialog import TelephoneDialog
+from PatientDialog import PatientDialog
+from PIL import Image
+import base64
+import io
 
 INFO_PATHS = ["%APPDATA%\Dropbox\info.json",
               "%LOCALAPPDATA%\Dropbox\info.json", " ~/.dropbox/info.json"]
@@ -29,6 +34,11 @@ class MainUI(QMainWindow):
     def __init__(self):
         super(MainUI, self).__init__()
         loadUi('MainWindow.ui', self)
+        self.scene=None
+        self.x1=0
+        self.x2=0
+        self.x2=600
+        self.x3=600
 
         # Letter buttons
         self.pushButton_LetterNew.clicked.connect(self.NewLetter)
@@ -44,10 +54,16 @@ class MainUI(QMainWindow):
         self.listWidgetEmails.itemClicked.connect(self.listEmailsChanged)
         self.listWidgetTel.itemClicked.connect(self.listTelsChanged)
 
+        self.listWidgetPatients.itemDoubleClicked.connect(self.listPatientsDblClicked)
         self.listWidgetReferringDoctors.itemDoubleClicked.connect(self.listReferringDoctorsDblClicked)
         self.listWidgetAddresses.itemDoubleClicked.connect(self.listAddressesDblClicked)
         self.listWidgetEmails.itemDoubleClicked.connect(self.listEmailsDblClicked)
         self.listWidgetTel.itemDoubleClicked.connect(self.listTelsDblClicked)
+
+        self.pushButton_ChangePhoto.clicked.connect(self.addHeadPhoto)
+        self.pushButton_RemovePhoto.clicked.connect(self.removeHeadPhoto)
+
+
 
 
 
@@ -56,7 +72,7 @@ class MainUI(QMainWindow):
         self.dbx = Dropbox.Dropbox(
             'ABC')
 
-        self.fillListBox()
+        self.fillPatients()
         self.fillComboBoxLocations()
 
     def refreshMain(self):
@@ -64,6 +80,57 @@ class MainUI(QMainWindow):
         self.fillEmails()
         self.fillDoctors()
         self.fillTel()
+        self.fillPhoto()
+
+    def clearPhoto(self):
+        self.label_Photo.clear()
+        self.pushButton_RemovePhoto.setEnabled(False)
+
+    def removeHeadPhoto(self):
+        result=RunScript("SQL/UpdatePatientPhoto.sql",(None,self.patientID,))
+        self.clearPhoto()
+    def fillPhoto(self):
+        self.clearPhoto()
+        if self.patientID==-1: return
+
+        result=RunScript("SQL/GetPatient.sql",(self.patientID,))
+
+        blob=result.fetchone()['Photo']
+        if not blob: return
+        #write to temp file
+        with open ('temp.png','wb') as File:
+            File.write(blob)
+            File.close()
+        self.loadPhoto('temp.png')
+
+
+    def loadPhoto(self,f):
+        self.pix = QPixmap(f)
+        self.label_Photo.setPixmap(self.pix)
+#        self.resize(self.pix.width(), self.pix.height())
+
+        self.pushButton_RemovePhoto.setEnabled(True)
+
+    def addHeadPhoto(self):
+
+        if self.patientID==-1: return
+
+        if self.scene: self.clearPhoto()
+
+        file_name, _ = QFileDialog.getOpenFileName(
+            self, "Open file", ".", "Image Files (*.png *.jpg *.bmp)"
+        )
+        if not file_name:
+            return
+        blob=convert_into_binary(file_name)
+        result=RunScript("SQL/UpdatePatientPhoto.sql",(blob,self.patientID,))
+        if result==None:return
+
+        self.loadPhoto(file_name)
+
+    def setPatientID(self,ID):
+        self.patientID=ID
+        self.lineEditPatientID.setText(str(ID).zfill(6))
 
     def getPatientFolder(self):
         if self.patientID == -1: return None
@@ -78,23 +145,24 @@ class MainUI(QMainWindow):
         return t.strftime('"%y-%m-%d %H%M"').replace('\"', "")
 
     def sync_lineEdit(self):
-        self.fillListBox()
+        self.fillPatients()
         self.listWidgetPatients.setCurrentRow(0)
         items = self.listWidgetPatients.selectedItems()
         self.patientID = -1  # default none selected
-        if len(items) > 0: self.patientID = items[0].value
+        if len(items) > 0: self.setPatientID(items[0].value)
         print(self.patientID)
         self.refreshMain()
 
     def listPatientsClicked(self):
         items = self.listWidgetPatients.selectedItems()
         self.patientID = -1  # default none selected
-        if len(items) > 0: self.patientID = items[0].value
+        if len(items) > 0: self.setPatientID(items[0].value)
+        print(self.patientID)
         self.refreshMain()
 
     def listTelsChanged(self, item):
         print(item.value, self.patientID)
-        if item.checkState()==Qt.CheckState.Checked:
+        if item.checkState()==QtCore.Qt.CheckState.Checked:
             x=1
         else:
             x=0
@@ -105,7 +173,7 @@ class MainUI(QMainWindow):
 
     def listEmailsChanged(self, item):
         print(item.value, self.patientID)
-        if item.checkState()==Qt.CheckState.Checked:
+        if item.checkState()==QtCore.Qt.CheckState.Checked:
             x=1
         else:
             x=0
@@ -115,7 +183,7 @@ class MainUI(QMainWindow):
 
     def listAddressesChanged(self, item):
         print(item.value, self.patientID)
-        if item.checkState()==Qt.CheckState.Checked:
+        if item.checkState()==QtCore.Qt.CheckState.Checked:
             x=1
         else:
             x=0
@@ -125,7 +193,7 @@ class MainUI(QMainWindow):
 
     def listReferringDoctorsChanged(self, item):
         print(item.value, self.patientID)
-        if item.checkState()==Qt.CheckState.Checked:
+        if item.checkState()==QtCore.Qt.CheckState.Checked:
             x=1
         else:
             x=0
@@ -133,7 +201,12 @@ class MainUI(QMainWindow):
             result=RunScript('SQL/UpdateReferringDoctorsUsed.sql', (x, self.patientID, item.value))
         return
 
+    def listPatientsDblClicked(self,item):
+        dlg=PatientDialog(self,item.value,"PatientDialog.ui")
+        dlg.exec()
+
     def listAddressesDblClicked(self,item):
+        print(item)
         dlg=AddressDialog(self,item.value,"AddressDialog.ui")
         dlg.exec()
 
@@ -162,7 +235,7 @@ class MainUI(QMainWindow):
         if index > -1:
             self.locationID = self.comboBoxLocation.itemData(index)
 
-    def fillListBox(self):
+    def fillPatients(self):
         self.listWidgetPatients.clear()
         result = RunScript('SQL/List Patients Containing.sql', (self.lineEditName.text(),))
         for i in result:
@@ -176,11 +249,11 @@ class MainUI(QMainWindow):
         result = RunScript('SQL/Addresses Patient.sql', (self.patientID,))
         for i in result:
             item = QListWidgetItem(i[1])
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
             if i[2] == 1:
-                item.setCheckState(Qt.CheckState.Checked)
+                item.setCheckState(QtCore.Qt.CheckState.Checked)
             else:
-                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             item.value = i[0]
             self.listWidgetAddresses.addItem(item)
 
@@ -190,11 +263,11 @@ class MainUI(QMainWindow):
         result = RunScript('SQL/Emails Patient.sql', (self.patientID,))
         for i in result:
             item = QListWidgetItem(i[1])
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
             if i[2] == 1:
-                item.setCheckState(Qt.CheckState.Checked)
+                item.setCheckState(QtCore.Qt.CheckState.Checked)
             else:
-                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             item.value = i[0]
             self.listWidgetEmails.addItem(item)
 
@@ -204,11 +277,11 @@ class MainUI(QMainWindow):
         result = RunScript('SQL/Tels Patient.sql', (self.patientID,))
         for i in result:
             item = QListWidgetItem(i[1])
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
             if i[2] == 1:
-                item.setCheckState(Qt.CheckState.Checked)
+                item.setCheckState(QtCore.Qt.CheckState.Checked)
             else:
-                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             item.value = i[0]
             self.listWidgetTel.addItem(item)
 
@@ -219,11 +292,11 @@ class MainUI(QMainWindow):
         result = RunScript('SQL/Doctors.sql', (self.patientID,))
         for i in result:
             item = QListWidgetItem(i[2] + ' (' + i[3] + ')')
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
             if i[4] == 1:
-                item.setCheckState(Qt.CheckState.Checked)
+                item.setCheckState(QtCore.Qt.CheckState.Checked)
             else:
-                item.setCheckState(Qt.CheckState.Unchecked)
+                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
             item.value = i[0]
             self.listWidgetReferringDoctors.addItem(item)
 
@@ -283,17 +356,22 @@ class MainUI(QMainWindow):
 
     def getBasicContext(self):
         context = {}
+        #date
         context.update({'date':datetime.now().strftime('%d-%m-%Y')})
+        #locatiion
         if self.locationID > -1:
             result = RunScript('SQL/Locations.sql', (self.locationID,))
             y = dict(result.fetchall()[0])
             context.update({'location': y.get('Name')})
             context.update({'location_address': y.get('Address')})
+        #patient details
         if self.patientID > -1:
+            #personal details
             result = RunScript('SQL/Details New Letter.sql', (self.patientID,))
-            y = dict(result.fetchall()[0])
-            context.update({"name": y.get('Name'), "full_details": y.get('FullName') + " " + y.get('DOB')})
-            if y.get('NHS_NO'): context["nhs_no"] = "NHS No: " + y.get('NHS_NO')
+            if result:
+                y = dict(result.fetchall()[0])
+                context.update({"name": y.get('Name'), "full_details": y.get('FullName') + " " + y.get('DOB')})
+                if y.get('NHS_NO'): context["nhs_no"] = "NHS No: " + y.get('NHS_NO')
 
             #Addresses
             result = RunScript('SQL/Addresses Patient Used.sql', (self.patientID,))
