@@ -1,3 +1,3 @@
 INSERT INTO
 DOCTORS
-VALUES ("","","","","","","","","")
+DEFAULT VALUES

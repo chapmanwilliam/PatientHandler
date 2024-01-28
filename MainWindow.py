@@ -1,27 +1,22 @@
-from PyQt6.QtWidgets import QMainWindow, QApplication, QGraphicsScene, QWidget, QListWidgetItem, QFileDialog, QGraphicsPixmapItem
+from PyQt6.QtWidgets import QMainWindow, QApplication, QPushButton, QHBoxLayout, QListWidgetItem, QLabel, QComboBox
 from PyQt6.uic import loadUi
 from PyQt6 import QtCore
-from PyQt6.QtGui import *
 import sys
 import os, subprocess, platform
 from os import sep
 from datetime import datetime
 import dropbox as Dropbox
-from dropbox.exceptions import ApiError
 from dropbox.files import WriteMode
 from pathlib import Path
 import shutil
-from SQL import executeScriptsFromFile as RunScript, convert_into_binary
+from SQL import executeScriptsFromFile as RunScript
 from docxtpl import DocxTemplate
 import json
-from DoctorDialog import DoctorDialog
-from AddressDialog import AddressDialog
-from EmailDialog import EmailDialog
-from TelephoneDialog import TelephoneDialog
-from PatientDialog import PatientDialog
-from PIL import Image
-import base64
-import io
+from ListBoxes.label_PhotoClone import label_PhotoClone
+from ListBoxes.ListBox_Clone import ListBox_Clone
+from ListBoxes.ListBoxSearchable_CloneWithPhoto import ListBoxSearchable_CloneWithPhoto
+from Dialogs.DoctorsDialog import DoctorsDialog
+from ListBoxes.CDropLabel import dropLabel
 
 INFO_PATHS = ["%APPDATA%\Dropbox\info.json",
               "%LOCALAPPDATA%\Dropbox\info.json", " ~/.dropbox/info.json"]
@@ -29,144 +24,106 @@ INFO_PATHS = ["%APPDATA%\Dropbox\info.json",
 APP_PATH = "/Apps/Patient Handler"
 
 
-
 class MainUI(QMainWindow):
     def __init__(self):
         super(MainUI, self).__init__()
         loadUi('MainWindow.ui', self)
-        self.scene=None
-        self.x1=0
-        self.x2=0
-        self.x2=600
-        self.x3=600
-
-        # Letter buttons
-        self.pushButton_LetterNew.clicked.connect(self.NewLetter)
-        self.pushButton_LetterFollowUp.clicked.connect(self.FollowUpLetter)
-        self.pushButton_LetterPrescription.clicked.connect(self.PrescriptionLetter)
-
-        self.lineEditName.textChanged.connect(self.sync_lineEdit)
-        self.listWidgetPatients.clicked.connect(self.listPatientsClicked)
-        self.comboBoxLocation.activated.connect(self.ComboBoxLocationsChanged)
-
-        self.listWidgetReferringDoctors.itemClicked.connect(self.listReferringDoctorsChanged)
-        self.listWidgetAddresses.itemClicked.connect(self.listAddressesChanged)
-        self.listWidgetEmails.itemClicked.connect(self.listEmailsChanged)
-        self.listWidgetTel.itemClicked.connect(self.listTelsChanged)
-
-        self.listWidgetPatients.itemDoubleClicked.connect(self.listPatientsDblClicked)
-        self.listWidgetReferringDoctors.itemDoubleClicked.connect(self.listReferringDoctorsDblClicked)
-        self.listWidgetAddresses.itemDoubleClicked.connect(self.listAddressesDblClicked)
-        self.listWidgetEmails.itemDoubleClicked.connect(self.listEmailsDblClicked)
-        self.listWidgetTel.itemDoubleClicked.connect(self.listTelsDblClicked)
-
-        self.pushButton_ChangePhoto.clicked.connect(self.addHeadPhoto)
-        self.pushButton_RemovePhoto.clicked.connect(self.removeHeadPhoto)
-
-        address_action=QAction("Add",self)
-        email_action=QAction("Add",self)
-        doctor_action=QAction("Add",self)
-        telephone_action=QAction("Add",self)
-
-        address_action.triggered.connect(self.addAddress)
-        email_action.triggered.connect(self.addEmail)
-        doctor_action.triggered.connect(self.addDoctor)
-        telephone_action.triggered.connect(self.addTelephone)
-
-        self.listWidgetAddresses.addAction(address_action)
-        self.listWidgetEmails.addAction(email_action)
-        self.listWidgetReferringDoctors.addAction(doctor_action)
-        self.listWidgetTel.addAction(telephone_action)
-
         self.patientID = -1
         self.locationID = -1
+
+        # Photo label
+
+        self.childListBoxes = {}  # stores dict of the boxes
+        self.addSearhablePatientListBox()
+        self.addPatientButtons()
+        self.addPatientListBoxes()
+        self.fillComboBoxLocations()
+
+        self.dropLabel=dropLabel(self)
+        self.gridLayout_Right.addWidget(self.dropLabel)
+
+        self.actionDoctors_Show.triggered.connect(self.showDoctors)
+
+
+        self.comboBoxLocation.activated.connect(self.ComboBoxLocationsChanged)
+
+
         self.dbx = Dropbox.Dropbox(
             'ABC')
 
-        self.fillPatients()
-        self.fillComboBoxLocations()
+    def showDoctors(self):
+        doctorsDialog = DoctorsDialog(self)
+        doctorsDialog.exec()
 
-    def addAddress(self):
-        if self.patientID==-1: return
-        dlg=AddressDialog(self,-1,"AddressDialog.ui")
-        dlg.exec()
+    def updateDoctorItem(self,ID):
+        self.childListBoxes['REFERRING_DOCTORS'].RowEditedSignalled(ID)
 
-    def addEmail(self):
-        if self.patientID==-1: return
-        dlg=EmailDialog(self,-1,"EmailDialog.ui")
-        dlg.exec()
-
-    def addDoctor(self):
-        if self.patientID==-1: return
-        dlg=DoctorDialog(self,-1,"DoctorDialog.ui")
-        dlg.exec()
-
-    def addTelephone(self):
-        if self.patientID==-1: return
-        dlg=TelephoneDialog(self,-1,"TelephoneDialog.ui")
-        dlg.exec()
+    def deleteDoctorItem(self,ID):
+        self.childListBoxes['REFERRING_DOCTORS'].fillBox()
 
 
-    def refreshMain(self):
-        self.fillAddresses()
-        self.fillEmails()
-        self.fillDoctors()
-        self.fillTel()
-        self.fillPhoto()
+    @QtCore.pyqtSlot(int)
+    def patientChanged(self, ID):
+        self.setPatientID(ID)
+        for k,v in self.childListBoxes.items(): v.fillBox()
+#        self.label_Photo.ID=self.patientID
+#        self.label_Photo.fillPhoto()
+        print('Patient ID set, ',self.patientID)
 
-    def clearPhoto(self):
-        self.label_Photo.clear()
-        self.pushButton_RemovePhoto.setEnabled(False)
+    def addSearhablePatientListBox(self):
+        #Photo for locations
+        self.location_photo=label_PhotoClone(self, "LOCATIONS")
+        #Combobox for locations
+        self.comboBoxLocation=QComboBox(self)
+        f = self.comboBoxLocation.font()
+        f.setPointSize(27)  # sets the size to 27
+        self.comboBoxLocation.setFont(f)
+        #add to hlayout
+        self.horizontalLayout_Top.addWidget(self.location_photo)
+        self.horizontalLayout_Top.addWidget(self.comboBoxLocation)
 
-    def removeHeadPhoto(self):
-        result=RunScript("SQL/UpdatePatientPhoto.sql",(None,self.patientID,))
-        self.clearPhoto()
-    def fillPhoto(self):
-        self.clearPhoto()
-        if self.patientID==-1: return
+        hlayout=QHBoxLayout()
+        self.searchablePatientList = ListBoxSearchable_CloneWithPhoto(self, "PATIENTS")
+        self.verticalLayout_Top.addLayout(hlayout)
+        self.verticalLayout_Top.addLayout(self.searchablePatientList)
+        self.searchablePatientList.list.itemChangedSignal.connect(self.patientChanged)
+        self.patientChanged(self.searchablePatientList.list.ID)
 
-        result=RunScript("SQL/GetPatient.sql",(self.patientID,))
+    def addPatientListBoxes(self):
+        # Add the patient listboxes to verticalLayoutLeft
+        lst=('ADDRESSES','TELEPHONES','EMAILS','REFERRING_DOCTORS')
 
-        blob=result.fetchone()['Photo']
-        if not blob: return
-        #write to temp file
-        with open ('temp.png','wb') as File:
-            File.write(blob)
-            File.close()
-        self.loadPhoto('temp.png')
+        for l in lst:
+            label=QLabel(self); label.setText(str.capitalize((l.replace('_',' '))+":"))
+            box=ListBox_Clone(self,l)
+            self.verticalLayoutLeft.addWidget(label)
+            self.verticalLayoutLeft.addWidget(box);self.childListBoxes.update({l:box})
+
+    def addPatientButtons(self):
+        # Letter buttons
+        self.button_newPatient = QPushButton(self);
+        self.button_newPatient.setText('NEW PATIENT')
+        self.button_Prescription = QPushButton(self);
+        self.button_Prescription.setText('PRESCRIPTION')
+        self.button_FollowUp = QPushButton(self);
+        self.button_FollowUp.setText('FOLLOW UP')
+        self.HLayout = QHBoxLayout()
+        self.HLayout.addWidget(self.button_newPatient)
+        self.HLayout.addWidget(self.button_FollowUp)
+        self.HLayout.addWidget(self.button_Prescription)
+        self.verticalLayout_Top.addLayout(self.HLayout)
+
+        self.button_newPatient.clicked.connect(self.NewLetter)
+        self.button_FollowUp.clicked.connect(self.FollowUpLetter)
+        self.button_Prescription.clicked.connect(self.PrescriptionLetter)
 
 
-    def loadPhoto(self,f):
-        self.pix = QPixmap(f)
-        self.label_Photo.setPixmap(self.pix)
-#        self.resize(self.pix.width(), self.pix.height())
-
-        self.pushButton_RemovePhoto.setEnabled(True)
-
-    def addHeadPhoto(self):
-
-        if self.patientID==-1: return
-
-        if self.scene: self.clearPhoto()
-
-        file_name, _ = QFileDialog.getOpenFileName(
-            self, "Open file", ".", "Image Files (*.png *.jpg *.bmp)"
-        )
-        if not file_name:
-            return
-        blob=convert_into_binary(file_name)
-        result=RunScript("SQL/UpdatePatientPhoto.sql",(blob,self.patientID,))
-        if result==None:return
-
-        self.loadPhoto(file_name)
-
-    def setPatientID(self,ID):
-        self.patientID=ID
-        self.lineEditPatientID.setText(str(ID).zfill(6))
+    def setPatientID(self, ID):
+        self.patientID = ID
 
     def getPatientFolder(self):
         if self.patientID == -1: return None
-        items = self.listWidgetPatients.selectedItems()
+        items = self.searchablePatientList.list.selectedItems()
         if len(items) > 0:
             name = items[0].data(0)
             id = self.patientID
@@ -176,161 +133,30 @@ class MainUI(QMainWindow):
         t = datetime.now()
         return t.strftime('"%y-%m-%d %H%M"').replace('\"', "")
 
-    def sync_lineEdit(self):
-        self.fillPatients()
-        self.listWidgetPatients.setCurrentRow(0)
-        items = self.listWidgetPatients.selectedItems()
-        self.patientID = -1  # default none selected
-        if len(items) > 0: self.setPatientID(items[0].value)
-        print(self.patientID)
-        self.refreshMain()
-
-    def listPatientsClicked(self):
-        items = self.listWidgetPatients.selectedItems()
-        self.patientID = -1  # default none selected
-        if len(items) > 0: self.setPatientID(items[0].value)
-        print(self.patientID)
-        self.refreshMain()
-
-    def listTelsChanged(self, item):
-        print(item.value, self.patientID)
-        if item.checkState()==QtCore.Qt.CheckState.Checked:
-            x=1
-        else:
-            x=0
-        if item.value>0 and self.patientID>0:
-            result=RunScript('SQL/UpdateTelsUsed.sql',(x,self.patientID,item.value))
-        return
-
-
-    def listEmailsChanged(self, item):
-        print(item.value, self.patientID)
-        if item.checkState()==QtCore.Qt.CheckState.Checked:
-            x=1
-        else:
-            x=0
-        if item.value>0 and self.patientID>0:
-            result=RunScript('SQL/UpdateEmailsUsed.sql',(x,self.patientID,item.value))
-        return
-
-    def listAddressesChanged(self, item):
-        print(item.value, self.patientID)
-        if item.checkState()==QtCore.Qt.CheckState.Checked:
-            x=1
-        else:
-            x=0
-        if item.value>0 and self.patientID>0:
-            result=RunScript('SQL/UpdateAddressesUsed.sql',(x,self.patientID,item.value))
-        return
-
-    def listReferringDoctorsChanged(self, item):
-        print(item.value, self.patientID)
-        if item.checkState()==QtCore.Qt.CheckState.Checked:
-            x=1
-        else:
-            x=0
-        if item.value>0 and self.patientID>0:
-            result=RunScript('SQL/UpdateReferringDoctorsUsed.sql', (x, self.patientID, item.value))
-        return
-
-    def listPatientsDblClicked(self,item):
-        dlg=PatientDialog(self,item.value,"PatientDialog.ui")
-        dlg.exec()
-
-    def listAddressesDblClicked(self,item):
-        print(item)
-        dlg=AddressDialog(self,item.value,"AddressDialog.ui")
-        dlg.exec()
-
-    def listReferringDoctorsDblClicked(self,item):
-        dlg=DoctorDialog(self, item.value, "DoctorDialog.ui")
-        dlg.exec()
-
-    def listEmailsDblClicked(self,item):
-        dlg=EmailDialog(self, item.value, "EmailDialog.ui")
-        dlg.exec()
-
-    def listTelsDblClicked(self,item):
-        dlg=TelephoneDialog(self, item.value, "TelephoneDialog.ui")
-        dlg.exec()
 
     def fillComboBoxLocations(self):
         self.comboBoxLocation.clear()
         result = RunScript('SQL/All Locations.sql')
         for i in result:
             self.comboBoxLocation.addItem(i[1], i[0])
-        self.comboBoxLocation.setCurrentIndex(0) #set to first in list
+        self.comboBoxLocation.setCurrentIndex(0)  # set to first in list
         self.ComboBoxLocationsChanged()
 
     def ComboBoxLocationsChanged(self):
         index = self.comboBoxLocation.currentIndex()
         if index > -1:
             self.locationID = self.comboBoxLocation.itemData(index)
+            self.location_photo.ID=self.locationID
+            self.location_photo.fillPhoto()
 
     def fillPatients(self):
         self.listWidgetPatients.clear()
-        result = RunScript('SQL/List Patients Containing.sql', (self.lineEditName.text(),))
+        result = RunScript('SQL/Patients lists/Patients Containing.sql', (self.lineEditName.text(),))
         for i in result:
             item = QListWidgetItem(i[1])
             item.value = i[0]  # the patient id
             self.listWidgetPatients.addItem(item)
-
-    def fillAddresses(self):
-        self.listWidgetAddresses.clear()
-        if self.patientID == -1: return
-        result = RunScript('SQL/Addresses Patient.sql', (self.patientID,))
-        for i in result:
-            item = QListWidgetItem(i[1])
-            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
-            if i[2] == 1:
-                item.setCheckState(QtCore.Qt.CheckState.Checked)
-            else:
-                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
-            item.value = i[0]
-            self.listWidgetAddresses.addItem(item)
-
-    def fillEmails(self):
-        self.listWidgetEmails.clear()
-        if self.patientID == -1: return
-        result = RunScript('SQL/Emails Patient.sql', (self.patientID,))
-        for i in result:
-            item = QListWidgetItem(i[1])
-            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
-            if i[2] == 1:
-                item.setCheckState(QtCore.Qt.CheckState.Checked)
-            else:
-                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
-            item.value = i[0]
-            self.listWidgetEmails.addItem(item)
-
-    def fillTel(self):
-        self.listWidgetTel.clear()
-        if self.patientID == -1: return
-        result = RunScript('SQL/Tels Patient.sql', (self.patientID,))
-        for i in result:
-            item = QListWidgetItem(i[1])
-            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
-            if i[2] == 1:
-                item.setCheckState(QtCore.Qt.CheckState.Checked)
-            else:
-                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
-            item.value = i[0]
-            self.listWidgetTel.addItem(item)
-
-
-    def fillDoctors(self):
-        self.listWidgetReferringDoctors.clear()
-        if self.patientID == -1: return
-        result = RunScript('SQL/Doctors.sql', (self.patientID,))
-        for i in result:
-            item = QListWidgetItem(i[2] + ' (' + i[3] + ')')
-            item.setFlags(item.flags() | QtCore.Qt.ItemFlag.ItemIsUserCheckable)
-            if i[4] == 1:
-                item.setCheckState(QtCore.Qt.CheckState.Checked)
-            else:
-                item.setCheckState(QtCore.Qt.CheckState.Unchecked)
-            item.value = i[0]
-            self.listWidgetReferringDoctors.addItem(item)
+        self.refreshMain()
 
     def openWord(self, filepath):
         if platform.system() == 'Darwin':  # macOS
@@ -384,71 +210,72 @@ class MainUI(QMainWindow):
 
     def formatAddress(self, s):
         x = s.split(",")
+        x=[y.strip() for y in x]
         return '\n'.join(x)
 
     def getBasicContext(self):
         context = {}
-        #date
-        context.update({'date':datetime.now().strftime('%d-%m-%Y')})
-        #locatiion
+        # date
+        context.update({'date': 'Dated: '+ datetime.now().strftime('%d-%m-%Y')})
+
+        # locatiion
         if self.locationID > -1:
             result = RunScript('SQL/Locations.sql', (self.locationID,))
-            y = dict(result.fetchall()[0])
-            context.update({'location': y.get('Name')})
-            context.update({'location_address': y.get('Address')})
-        #patient details
-        if self.patientID > -1:
-            #personal details
-            result = RunScript('SQL/Details New Letter.sql', (self.patientID,))
             if result:
                 y = dict(result.fetchall()[0])
-                context.update({"name": y.get('Name'), "full_details": y.get('FullName') + " " + y.get('DOB')})
-                if y.get('NHS_NO'): context["nhs_no"] = "NHS No: " + y.get('NHS_NO')
+                context.update({'location': y.get('Name')})
+                context.update({'location_address': y.get('Address')})
 
-            #Addresses
+        # patient details
+        if self.patientID > -1:
+            # patients id
+            context.update({'patient_id':str(self.patientID).zfill(6)})
+            # personal details
+            result = RunScript('SQL/Details New Letter.sql', (self.patientID,))
+            if result:
+                y = result.fetchall()[0]
+                context.update({"name": y['Name'], "full_details": y['FullName'] + ", " + y['DOB']})
+                if y['NHS_NO']: context["full_details"] += "; NHS No: " + y['NHS_NO']
+
+            # Addresses
             result = RunScript('SQL/Addresses Patient Used.sql', (self.patientID,))
-            addresses=[]
-            for i in result:
-                y=dict(i)
-                addresses.append(self.formatAddress(y.get('Address')))
-            if len(addresses)>0:
-                a='\n\n'.join(addresses)
-                context.update({'address':a})
+            addresses = []
+            if result:
+                for i in result:
+                    addresses.append(self.formatAddress(i['TXT']))
+                if len(addresses) > 0:
+                    a = '\n\n'.join(addresses)
+                    context.update({'address': a})
 
-            #Telephone
+            # Telephone
             result = RunScript('SQL/Tel Patient Used.sql', (self.patientID,))
-            tels=[]
-            for i in result:
-                y=dict(i)
-                tels.append("t: "+y.get('TEL_NO'))
-            if len(tels)>0:
-                t='\n'.join(tels)
-                context.update({'tel':t})
+            tels = []
+            if result:
+                for i in result:
+                    tels.append("t: " + i['TXT'])
+                if len(tels) > 0:
+                    t = '\n'.join(tels)
+                    context.update({'tel': t})
 
-            #Referring doctors
-            result = RunScript('SQL/Referring Doctors.sql', (self.patientID,))
-            drs=[]
-            for i in result:
-                y = dict(i)
-                x = []
-                x.append(y.get('Doctor'))
-                if y.get('Job_Title'): x.append(y.get('Job_Title'))
-                drs.append(", ".join(x))
-            if len(drs)>0:
-                d="Cc'd"+ "\n"+'\n'.join(drs)
-                context.update({'referring_doctors':d})
+            # Referring doctors
+            result = RunScript('SQL/Referring Doctors Patient Used.sql', (self.patientID,))
+            drs = []
+            if result:
+                for i in result:
+                    drs.append(i['TXT'])
+                if len(drs) > 0:
+                    d = "Cc'd" + "\n" + '\n'.join(drs)
+                    context.update({'referring_doctors': d})
 
-            #Emails
+            # Emails
             result = RunScript('SQL/Emails Patient Used.sql', (self.patientID,))
-            emails=[]
-            for i in result:
-                y = dict(i)
-                emails.append(y.get('Email'))
-            if len(emails)>0:
-                e="Also by email:"+ "\n"+'\n'.join(emails)
-                context.update({'emails':e})
-
-
+            emails = []
+            if result:
+                for i in result:
+                    emails.append(i['TXT'])
+                if len(emails) > 0:
+                    e = "Also by email:" + "\n" + '\n'.join(emails)
+                    context.update({'emails': e})
 
         return context
 

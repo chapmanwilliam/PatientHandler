@@ -10,7 +10,30 @@ def getCursor():
     connection.row_factory = sqlite3.Row
     cursor=connection.cursor()
     return cursor
-def executeScriptsFromFile(filename, search=None):
+
+def executeScript(command, params=()):
+    sqlCommands = command.split(';')
+
+    connection=getConnection()
+    connection.row_factory=sqlite3.Row
+    cursor=connection.cursor()
+
+
+    # Execute every command from the input file
+    for command in sqlCommands:
+        # This will skip and report errors
+        # For example, if the tables do not yet exist, this will skip over
+        # the DROP TABLE commands
+        try:
+            result=cursor.execute(command,params)
+        except OperationalError as msg:
+            print("Command skipped: ", msg)
+            return None
+    connection.commit()
+    return result
+
+
+def executeScriptsFromFile(filename, search=()):
     # Open and read the file as a single buffer
     fd = open(filename, 'r')
     sqlFile = fd.read()
@@ -30,13 +53,11 @@ def executeScriptsFromFile(filename, search=None):
         # For example, if the tables do not yet exist, this will skip over
         # the DROP TABLE commands
         try:
-            if search is None:
-                result=cursor.execute(command)
-            else:
-                result = cursor.execute(command, search)
+            result = cursor.execute(command, search)
         except OperationalError as msg:
-            print("Command skipped: ", msg)
             return None
+            print("Command skipped: ", msg)
+
     connection.commit()
     return result
 

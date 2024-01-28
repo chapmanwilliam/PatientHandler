@@ -1,7 +1,7 @@
 SELECT
-    PATIENTS.Title || ' ' || Patients.SecondName as Name,
-    PATIENTS.FirstName || ' ' || PATIENTS.SecondName as FullName,
-    strftime('%d-%m-%Y',Patients.DOB) as DOB,
-    PATIENTS.NHS_NO
+    PATIENTS.Title || ' ' || Patients.Second_Name as Name,
+    PATIENTS.First_Name || ' ' || PATIENTS.Second_Name as FullName,
+    strftime('%d-%m-%Y',Patients.Date_of_birth) as DOB,
+    PATIENTS.NHS_no
 FROM Patients
 WHERE PATIENTS.ROWID=?

@@ -1,5 +1,5 @@
 SELECT
-    ROWID, Name, Address, TEL_NO
+    ROWID, Name, Address, Telephone
 FROM
     LOCATIONS
 WHERE ROWID=?

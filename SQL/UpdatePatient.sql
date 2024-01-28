@@ -1,9 +1,9 @@
 UPDATE Patients
 SET
-FirstName=?,
-SecondName=?,
+First_Name=?,
+Second_Name=?,
 Title=?,
-DOB=?,
-NHS_NO=?,
+Date_of_birth=?,
+NHS_no=?,
 Occupation=?
 WHERE ROWID=?
