@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QLabel, QSizePolicy
-from PyQt6 import QtCore
+from PyQt6.QtWidgets import QLabel
+from GoogleDriveFunctions import *
 
 import os
 
@@ -30,4 +30,5 @@ class dropLabel(QLabel):
             base, extension = os.path.splitext(name)
             dest = os.path.join(self.mainUI.getPatientFolder(), self.mainUI.getTimeStamp() + " " + base + " " + PID + extension)
             self.mainUI.safeCopyFile(f, dest)
+            saveFileToPatientFolder(self.mainUI.patientID,f) #save to google drive
             print(dest)

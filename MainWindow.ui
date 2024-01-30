@@ -81,6 +81,7 @@
     </property>
     <addaction name="separator"/>
     <addaction name="actionDoctors_Show"/>
+    <addaction name="actionLetters_Show"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>
@@ -118,6 +119,11 @@
   <action name="actionDoctors_Show">
    <property name="text">
     <string>Doctors...</string>
+   </property>
+  </action>
+  <action name="actionLetters_Show">
+   <property name="text">
+    <string>Letters...</string>
    </property>
   </action>
  </widget>

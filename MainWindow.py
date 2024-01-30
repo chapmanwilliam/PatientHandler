@@ -13,10 +13,12 @@ from SQL import executeScriptsFromFile as RunScript
 from docxtpl import DocxTemplate
 import json
 from ListBoxes.label_PhotoClone import label_PhotoClone
-from ListBoxes.ListBox_Clone import ListBox_Clone
-from ListBoxes.ListBoxSearchable_CloneWithPhoto import ListBoxSearchable_CloneWithPhoto
+from ListBoxes.ListBoxes import ListBoxAddresses, ListBoxEmails, ListBoxTelephones, ListBoxReferringDoctors
+from ListBoxes.ListBoxes import ListBoxSearchablePatientsWithPhoto
 from Dialogs.DoctorsDialog import DoctorsDialog
+from Dialogs.LettersDialog import LettersDialog
 from ListBoxes.CDropLabel import dropLabel
+from GoogleDriveFunctions import *
 
 INFO_PATHS = ["%APPDATA%\Dropbox\info.json",
               "%LOCALAPPDATA%\Dropbox\info.json", " ~/.dropbox/info.json"]
@@ -43,6 +45,7 @@ class MainUI(QMainWindow):
         self.gridLayout_Right.addWidget(self.dropLabel)
 
         self.actionDoctors_Show.triggered.connect(self.showDoctors)
+        self.actionLetters_Show.triggered.connect(self.showLetters)
 
 
         self.comboBoxLocation.activated.connect(self.ComboBoxLocationsChanged)
@@ -55,6 +58,11 @@ class MainUI(QMainWindow):
         doctorsDialog = DoctorsDialog(self)
         doctorsDialog.exec()
 
+    def showLetters(self):
+        lettersDialog = LettersDialog(self)
+        lettersDialog.exec()
+
+
     def updateDoctorItem(self,ID):
         self.childListBoxes['REFERRING_DOCTORS'].RowEditedSignalled(ID)
 
@@ -66,8 +74,6 @@ class MainUI(QMainWindow):
     def patientChanged(self, ID):
         self.setPatientID(ID)
         for k,v in self.childListBoxes.items(): v.fillBox()
-#        self.label_Photo.ID=self.patientID
-#        self.label_Photo.fillPhoto()
         print('Patient ID set, ',self.patientID)
 
     def addSearhablePatientListBox(self):
@@ -83,19 +89,34 @@ class MainUI(QMainWindow):
         self.horizontalLayout_Top.addWidget(self.comboBoxLocation)
 
         hlayout=QHBoxLayout()
-        self.searchablePatientList = ListBoxSearchable_CloneWithPhoto(self, "PATIENTS")
+        self.searchablePatientList = ListBoxSearchablePatientsWithPhoto(self, "PATIENTS")
         self.verticalLayout_Top.addLayout(hlayout)
         self.verticalLayout_Top.addLayout(self.searchablePatientList)
         self.searchablePatientList.list.itemChangedSignal.connect(self.patientChanged)
         self.patientChanged(self.searchablePatientList.list.ID)
 
+    def getListBox(self,type):
+        match type:
+            case 'ADDRESSES':
+                return ListBoxAddresses(self,'ADDRESSES')
+            case 'EMAILS':
+                return ListBoxEmails(self,'ADDRESSES')
+            case 'TELEPHONES':
+                return ListBoxTelephones(self,'TELEPHONES')
+            case 'REFERRING_DOCTORS':
+                return ListBoxReferringDoctors(self,'REFERRING_DOCTORS')
+            case other:
+                print('No type found in getListBox')
+                return None
+        return None
+
+
     def addPatientListBoxes(self):
         # Add the patient listboxes to verticalLayoutLeft
         lst=('ADDRESSES','TELEPHONES','EMAILS','REFERRING_DOCTORS')
-
         for l in lst:
             label=QLabel(self); label.setText(str.capitalize((l.replace('_',' '))+":"))
-            box=ListBox_Clone(self,l)
+            box=self.getListBox(l)
             self.verticalLayoutLeft.addWidget(label)
             self.verticalLayoutLeft.addWidget(box);self.childListBoxes.update({l:box})
 
@@ -107,15 +128,19 @@ class MainUI(QMainWindow):
         self.button_Prescription.setText('PRESCRIPTION')
         self.button_FollowUp = QPushButton(self);
         self.button_FollowUp.setText('FOLLOW UP')
+        self.button_ShowFolder=QPushButton(self)
+        self.button_ShowFolder.setText('SHOW FOLDER')
         self.HLayout = QHBoxLayout()
         self.HLayout.addWidget(self.button_newPatient)
         self.HLayout.addWidget(self.button_FollowUp)
         self.HLayout.addWidget(self.button_Prescription)
+        self.HLayout.addWidget(self.button_ShowFolder)
         self.verticalLayout_Top.addLayout(self.HLayout)
 
         self.button_newPatient.clicked.connect(self.NewLetter)
         self.button_FollowUp.clicked.connect(self.FollowUpLetter)
         self.button_Prescription.clicked.connect(self.PrescriptionLetter)
+        self.button_ShowFolder.clicked.connect(self.showFolder)
 
 
     def setPatientID(self, ID):
@@ -306,6 +331,7 @@ class MainUI(QMainWindow):
         doc.render(context)
         doc.save(d)
         self.openWord(d)
+        new_letter_patient(self.patientID,context)
 
     def NewLetter(self):
         self.Letter('NEW')
@@ -315,6 +341,9 @@ class MainUI(QMainWindow):
 
     def PrescriptionLetter(self):
         self.Letter("PRESCRIPTION")
+
+    def showFolder(self):
+        showFolder(self.patientID)
 
     # Drag and drop
     def dragEnterEvent(self, event):
@@ -370,3 +399,4 @@ if __name__ == '__main__':
     ui = MainUI()
     ui.show()
     app.exec()
+

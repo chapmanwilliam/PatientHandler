@@ -1,5 +1,15 @@
 import sqlite3
 from sqlite3 import OperationalError
+from datetime import datetime
+
+
+def addQuotes(s):
+    s='\"'+s+'\"'
+    return s
+def getTimeStamp():
+    t = datetime.now()
+    return t.strftime('"%y-%m-%d %H%M"').replace('\"', "")
+
 
 def getConnection():
     connection = sqlite3.connect('patients.sqlite')
