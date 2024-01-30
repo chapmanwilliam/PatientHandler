@@ -243,6 +243,7 @@ def copy(document_id,patientID):
 
 def search_and_replace(document_id, contents):
     #where contents is dictionary of tags and replacement text
+    if not document_id: return None
     requests=[]
     for key,value in contents.items():
         a={'replaceAllText': {'containsText': {'text': '{{'+key+'}}', 'matchCase': 'true'},
@@ -255,22 +256,26 @@ def search_and_replace(document_id, contents):
         documentId=document_id, body={'requests': requests}).execute()
     return document_id
 def getDocumentLink(document_id):
-    lnk="https://docs.google.com/document/d/"
-    lnk+=document_id
-    lnk+='/edit?usp=drive_link'
-    return lnk
+    if document_id:
+        lnk="https://docs.google.com/document/d/"
+        lnk+=document_id
+        lnk+='/edit?usp=drive_link'
+        return lnk
+    return None
 
 def getFolderLink(folder_id):
-    lnk="https://docs.google.com/drive/folders/"
-    lnk+=folder_id
-    lnk+='?ddrp=1#'
-    return lnk
+    if folder_id:
+        lnk="https://docs.google.com/drive/folders/"
+        lnk+=folder_id
+        lnk+='?ddrp=1#'
+        return lnk
+    return None
 
 def showFolder(patient_id):
     #show folder of the patient
     createPatientFolderFromID(patient_id)
     folder_id=getFolderIDPatient(patient_id)
-    webbrowser.open_new_tab(getFolderLink(folder_id)) #display link
+    if folder_id: webbrowser.open_new_tab(getFolderLink(folder_id)) #display link
 def add_correspondence_to_DB(patientID,document_id, document_title):
     sql=f"INSERT INTO CORRESPONDENCE (Date, Title, PATIENT_ID, Document_ID) VALUES ({addQuotes(getTimeStamp())},{addQuotes(document_title)},{patientID},{addQuotes(document_id)})"
     executeScript(sql)

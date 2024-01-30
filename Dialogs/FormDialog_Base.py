@@ -43,6 +43,14 @@ class FormDialogBase(QDialog):
         self.layout.deleteThisItem()
         self.close()
 
+class EditFormDialog(FormDialogBase):
+
+    def __init__(self, parent,table,ID):
+        super(EditFormDialog, self).__init__(parent,table,ID)
+
+
+    def createLayout(self):
+        self.layout = EditFormLayoutClone(self.mainUI,self.table,self.ID)
 
 
 

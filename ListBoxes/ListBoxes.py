@@ -3,7 +3,7 @@ from PyQt6 import QtCore
 from PyQt6.QtGui import *
 from SQL import executeScriptsFromFile as RunScript
 
-from Dialogs.EditFormDialog import EditFormDialog
+from Dialogs.FormDialog_Base import EditFormDialog
 from Dialogs.AddFormDialog import AddFormDialog
 from Dialogs.AddDoctorFormDialog import AddDoctorFormDialog
 from ListBoxes.label_PhotoClone import label_PhotoClone
@@ -444,7 +444,6 @@ class ListBoxTelephones(ListBox):
         params = (self.mainUI.patientID,)
         result = RunScript(sql, params)
         return result
-
 class ListBoxReferringDoctors(ListBox):
 
     def __init__(self, mainUI, type):
@@ -486,7 +485,6 @@ class ListBoxReferringDoctors(ListBox):
         params = (self.mainUI.patientID,)
         result = RunScript(sql, params)
         return result
-
 class ListBoxSearchable(QVBoxLayout):
     def __init__(self, mainUI, type):
         super().__init__()
@@ -558,8 +556,6 @@ class ListBoxSearchable(QVBoxLayout):
 
     def lnEditIDChanged(self):
         pass
-
-
 class ListBoxSearchableWithPhoto(ListBoxSearchable):
     def __init__(self, mainUI, type):
         super().__init__(mainUI, type)

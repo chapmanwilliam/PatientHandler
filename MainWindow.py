@@ -162,10 +162,11 @@ class MainUI(QMainWindow):
     def fillComboBoxLocations(self):
         self.comboBoxLocation.clear()
         result = RunScript('SQL/All Locations.sql')
-        for i in result:
-            self.comboBoxLocation.addItem(i[1], i[0])
-        self.comboBoxLocation.setCurrentIndex(0)  # set to first in list
-        self.ComboBoxLocationsChanged()
+        if result:
+            for i in result:
+                self.comboBoxLocation.addItem(i[1], i[0])
+            self.comboBoxLocation.setCurrentIndex(0)  # set to first in list
+            self.ComboBoxLocationsChanged()
 
     def ComboBoxLocationsChanged(self):
         index = self.comboBoxLocation.currentIndex()
@@ -177,11 +178,12 @@ class MainUI(QMainWindow):
     def fillPatients(self):
         self.listWidgetPatients.clear()
         result = RunScript('SQL/Patients lists/Patients Containing.sql', (self.lineEditName.text(),))
-        for i in result:
-            item = QListWidgetItem(i[1])
-            item.value = i[0]  # the patient id
-            self.listWidgetPatients.addItem(item)
-        self.refreshMain()
+        if result:
+            for i in result:
+                item = QListWidgetItem(i[1])
+                item.value = i[0]  # the patient id
+                self.listWidgetPatients.addItem(item)
+            self.refreshMain()
 
     def openWord(self, filepath):
         if platform.system() == 'Darwin':  # macOS
