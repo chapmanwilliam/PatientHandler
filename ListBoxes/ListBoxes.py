@@ -4,7 +4,7 @@ from PyQt6.QtGui import *
 from SQL import executeScriptsFromFile as RunScript
 
 from Dialogs.FormDialog_Base import EditFormDialog
-from Dialogs.AddFormDialog import AddFormDialog
+from Dialogs.FormDialog_Base import AddFormDialog
 from Dialogs.AddDoctorFormDialog import AddDoctorFormDialog
 from ListBoxes.label_PhotoClone import label_PhotoClone
 
@@ -146,36 +146,7 @@ class ListBox(QListWidget):
         self.deleteListItem()
 
     def deleteListItem(self):
-        result = None
-        sql = None
-        params = None
-        if self.ID == -1: return result
-        match self.type:
-            case 'PATIENTS':
-                sql = "SQL/Deletes/DeletePatient.sql"
-                params = (self.ID,)
-            case 'ADDRESSES':
-                sql = "SQL/Deletes/DeleteAddress.sql"
-                params = (self.ID,)
-            case 'EMAILS':
-                sql = "SQL/Deletes/DeleteEmail.sql"
-                params = (self.ID,)
-            case 'TELEPHONES':
-                sql = "SQL/Deletes/DeleteTelephone.sql"
-                params = (self.ID,)
-            case 'REFERRING_DOCTORS':
-                sql = "SQL/Deletes/DeleteReferringDoctor.sql"
-                params = (self.mainUI.patientID, self.ID)
-            case 'DOCTORS':
-                sql = "SQL/Deletes/DeleteDoctor.sql"
-                params = (self.ID,)
-            case other:
-                print("No matching type found deleting: ", self.type)
-                return result
-        result = RunScript(sql, params)
-
         self.fillBox()
-        return result
 
     def listDblClicked(self, item):
         self.editListItem()
@@ -276,7 +247,7 @@ class ListBox(QListWidget):
                 sql = "SQL/Patients lists/Doctors Containing.sql"
                 params = (self.searchTerm,)
             case "LETTERS":
-                sql = "SQL/Patients lists/Letters.sql"
+                sql = "SQL/Patients lists/Letters Containing.sql"
                 params = (self.searchTerm,)
             case other:
                 print('No matching type found loading: ', self.type)
@@ -305,6 +276,7 @@ class ListBoxPatients(ListBox):
         sql = "SQL/Deletes/DeletePatient.sql"
         params = (self.ID,)
         result = RunScript(sql, params)
+        super().deleteListItem()
         return result
 
     def updateCheckedStatus(self, checkedStatus, item):
@@ -345,6 +317,7 @@ class ListBoxAddresses(ListBox):
         sql = "SQL/Deletes/DeleteAddress.sql"
         params = (self.ID,)
         result = RunScript(sql, params)
+        super().deleteListItem()
         return result
 
     def updateCheckedStatus(self, checkedStatus, item):
@@ -360,8 +333,8 @@ class ListBoxAddresses(ListBox):
         result = None
         sql = None
         params = None
-        sql = "SQL/Patients lists/Addresses Patient.sql"
-        params = (self.searchTerm,)
+        sql = 'SQL/Patients lists/Addresses Patient.sql'
+        params = (self.mainUI.patientID,)
         result = RunScript(sql, params)
         return result
 class ListBoxEmails(ListBox):
@@ -385,6 +358,7 @@ class ListBoxEmails(ListBox):
         sql = "SQL/Deletes/DeleteEmail.sql"
         params = (self.ID,)
         result = RunScript(sql, params)
+        super().deleteListItem()
         return result
 
     def updateCheckedStatus(self, checkedStatus, item):
@@ -425,6 +399,7 @@ class ListBoxTelephones(ListBox):
         sql = "SQL/Deletes/DeleteTelephone.sql"
         params = (self.ID,)
         result = RunScript(sql, params)
+        super().deleteListItem()
         return result
 
     def updateCheckedStatus(self, checkedStatus, item):
@@ -463,9 +438,10 @@ class ListBoxReferringDoctors(ListBox):
         sql = None
         params = None
         if self.ID == -1: return result
-        sql = "SQL/Deletes/DeleteReferringDoctor.sql"
-        params = (self.mainUI.patientID, self.ID)
+        sql = "SQL/Deletes/DeleteDoctor.sql"
+        params = (self.ID,)
         result = RunScript(sql, params)
+        super().deleteListItem()
         return result
 
     def updateCheckedStatus(self, checkedStatus, item):
@@ -485,6 +461,94 @@ class ListBoxReferringDoctors(ListBox):
         params = (self.mainUI.patientID,)
         result = RunScript(sql, params)
         return result
+class ListBoxDoctors(ListBox):
+
+    def __init__(self, mainUI, type):
+        super().__init__(mainUI, type)
+        self.mainUI = mainUI
+        self.type = 'REFERRING_DOCTORS'  # the type of listbox: Addresses, Telephones, Emails, RefDoctors etc
+
+    def getTable(self):
+        table = {'name': 'DOCTORS',
+                 'columns': ['Title', 'First_Name', 'Second_Name', 'Job_Title',
+                             'Address', 'Post_Code', 'Country', 'Telephone', 'Email'],
+                 'patientID': False}
+        return table
+
+    def deleteListItem(self):
+        result = None
+        sql = None
+        params = None
+        if self.ID == -1: return result
+        table = {'name': 'DOCTORS',
+                 'columns': ['Title', 'First_Name', 'Second_Name', 'Job_Title',
+                             'Address', 'Post_Code', 'Country', 'Telephone', 'Email'],
+                 'patientID': False}
+        result = RunScript(sql, params)
+        super().deleteListItem()
+        return result
+
+    def updateCheckedStatus(self, checkedStatus, item):
+        result = None
+        sql = None
+        params = None
+        sql = "SQL/UpdateCheckBoxes/UpdateDoctorsUsed.sql"
+        params = (checkedStatus, self.ID)
+        result = RunScript(sql, params)
+        return result
+
+    def getSQLresult(self):
+        result = None
+        sql = None
+        params = None
+        sql = "SQL/Patients lists/Doctors Containing.sql"
+        params = (self.searchTerm,)
+        print('GOT HERE')
+        result = RunScript(sql, params)
+        return result
+
+class ListBoxLetters(ListBox):
+
+    def __init__(self, mainUI, type):
+        super().__init__(mainUI, type)
+        self.mainUI = mainUI
+        self.type = 'TELEPHONES'  # the type of listbox: Addresses, Telephones, Emails, RefDoctors etc
+
+    def getTable(self):
+        table = {'name': 'Correspondence',
+                 'columns': ['Title'],
+                 'patientID': True}
+        return table
+
+    def deleteListItem(self):
+        result = None
+        sql = None
+        params = None
+        if self.ID == -1: return result
+        sql = "SQL/Deletes/DeleteLetter.sql"
+        params = (self.ID,)
+        result = RunScript(sql, params)
+        super().deleteListItem()
+        return result
+
+    def updateCheckedStatus(self, checkedStatus, item):
+        result = None
+        sql = None
+        params = None
+        sql = "SQL/UpdateCheckBoxes/UpdateLettersUsed.sql"
+        params = (checkedStatus, self.mainUI.patientID, self.ID)
+        result = RunScript(sql, params)
+        return result
+
+    def getSQLresult(self):
+        result = None
+        sql = None
+        params = None
+        sql = "SQL/Patients lists/Letters Containing.sql"
+        params = (self.mainUI.patientID,)
+        result = RunScript(sql, params)
+        return result
+
 class ListBoxSearchable(QVBoxLayout):
     def __init__(self, mainUI, type):
         super().__init__()
@@ -570,7 +634,6 @@ class ListBoxSearchableWithPhoto(ListBoxSearchable):
         self.photo.ID = self.list.ID
         self.photo.fillPhoto()
 
-
 class ListBoxSearchablePatients(ListBoxSearchable):
     def __init__(self, mainUI, type):
         super().__init__(mainUI, type)
@@ -579,7 +642,6 @@ class ListBoxSearchablePatients(ListBoxSearchable):
         self.list = ListBoxPatients(self.mainUI, type)
         self.list.setMaximumHeight(100)
         self.list.setMinimumHeight(100)
-
 
 class ListBoxSearchablePatientsWithPhoto(ListBoxSearchablePatients):
     def __init__(self, mainUI, type):
@@ -594,3 +656,36 @@ class ListBoxSearchablePatientsWithPhoto(ListBoxSearchablePatients):
         super().setID()
         self.photo.ID = self.list.ID
         self.photo.fillPhoto()
+
+
+class ListBoxSearchableDoctors(ListBoxSearchable):
+    def __init__(self, mainUI, type):
+        super().__init__(mainUI, type)
+
+    def setListBox(self):
+        self.list = ListBoxDoctors(self.mainUI, type)
+        self.list.setMaximumHeight(100)
+        self.list.setMinimumHeight(100)
+
+class ListBoxSearchableDoctorsWithPhoto(ListBoxSearchableDoctors):
+    def __init__(self, mainUI, type):
+        super().__init__(mainUI, type)
+        self.mainUI = mainUI
+        self.type = type  # the type of listbox: Addresses, Telephones, Emails, RefDoctors etc
+
+        self.photo = label_PhotoClone(self.mainUI, self.type)
+        self.hlayout2.addWidget(self.photo)
+
+    def setID(self):
+        super().setID()
+        self.photo.ID = self.list.ID
+        self.photo.fillPhoto()
+
+class ListBoxSearchableLetters(ListBoxSearchable):
+    def __init__(self, mainUI, type):
+        super().__init__(mainUI, type)
+
+    def setListBox(self):
+        self.list = ListBoxLetters(self.mainUI, type)
+        self.list.setMaximumHeight(100)
+        self.list.setMinimumHeight(100)

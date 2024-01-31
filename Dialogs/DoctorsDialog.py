@@ -4,8 +4,8 @@ from PyQt6.uic import loadUi
 from SQL import executeScriptsFromFile as RunScript, executeScript
 
 
-from ListBoxes.ListBoxes import ListBoxSearchableWithPhoto
-from FormLayout.EditFormLayout_Clone import EditFormLayoutClone
+from ListBoxes.ListBoxes import ListBoxSearchableDoctorsWithPhoto
+from FormLayout.FormLayout_Base import EditFormLayoutClone
 
 class DoctorsDialog(QDialog):
     def __init__(self,mainUI):
@@ -19,7 +19,7 @@ class DoctorsDialog(QDialog):
                  'patientID': False}
 
         #seachable list with photo (it's a layout)
-        self.searchableList=ListBoxSearchableWithPhoto(self.mainUI, 'DOCTORS')
+        self.searchableList=ListBoxSearchableDoctorsWithPhoto(self.mainUI, 'DOCTORS')
         #edit form (it's a layout)
         self.editForm=EditFormLayoutClone(self.mainUI,self.table,self.searchableList.list.ID)
 

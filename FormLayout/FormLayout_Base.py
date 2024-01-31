@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QLineEdit, QFormLayout, QLabel, QDateEdit
 from PyQt6 import QtCore
-from SQL import executeScript
+from SQL import executeScript, getLastRowInsertID, addQuotes
 
 class lineEditOverride(QLineEdit):
     def __init__(self,parentForm):
@@ -63,7 +63,7 @@ class FormLayoutBase(QFormLayout):
         result = None
         d=self.getEntriesDic()
         if d:
-            result = ",\n".join([key + "=\"" + value + "\"" for key, value in d.items()])
+            result = ",\n".join([key + "=\"" + addQuotes(value) + "\"" for key, value in d.items()])
             result = "UPDATE " + self.table['name'] + "\nSET\n" + result + '\nWHERE ROWID=' + str(self.ID)
         return result
 
@@ -83,7 +83,6 @@ class FormLayoutBase(QFormLayout):
             if e.metaObject().className()=='dateEditOverride':
                 qD = QtCore.QDate.fromString(dic[ref], "yyyy-MM-dd")
                 e.setDate(qD)
-
 
     def loadWidgets(self):
         dic = self.getLoadSql()
@@ -114,3 +113,109 @@ class FormLayoutBase(QFormLayout):
     @QtCore.pyqtSlot()
     def possible_save(self):
         self.focusLossedSignal.emit()
+
+class EditFormLayoutClone(FormLayoutBase):
+    """Edit base QFormLayout."""
+    itemDeletedSignal = QtCore.pyqtSignal(int)
+
+    def __init__(self, mainUI, table, ID):
+        super().__init__(mainUI,table,ID)
+
+
+    def getSaveSql(self):
+        result = None
+        d=self.getEntriesDic()
+        print(d)
+        if d:
+            d.update({'USE':1})
+            values = ",\n".join([f"{key} = {addQuotes(value)}" for key, value in d.items()])
+            result = "UPDATE " + self.table['name'] + "\nSET\n" + values + '\nWHERE ROWID=' + str(self.ID)
+            print(result)
+        return result
+
+    def deleteThisItem(self):
+        print('delete')
+        self.itemDeletedSignal.emit(self.ID)
+
+    def saveDataWidgets(self):
+        result=super().saveDataWidgets()
+        if result:
+            self.itemChangedSignal.emit(self.ID)
+        return result
+
+class AddFormLayoutClone(FormLayoutBase):
+    """Edit base QFormLayout."""
+    itemAddedSignal = QtCore.pyqtSignal(int)
+
+    def __init__(self, mainUI, table, ID):
+        super().__init__(mainUI,table,ID)
+
+
+    def getSaveSql(self):
+        result = None
+        d = self.getEntriesDic()
+        if d:
+            columns = ",\n".join([key for key in d])
+            if self.table['patientID']: columns = columns + ",\n" + "PATIENT_ID"
+            columns = "(" + columns + "\n,USE)"
+            values = ",\n".join([addQuotes(value) for key, value in d.items()])
+            if self.table['patientID']: values = values + f",\n{self.mainUI.patientID}"
+            values = "(" + values + "\n,1)"
+            result = "INSERT INTO\n" + self.table['name'] + "\n" + columns + "\nVALUES\n" + values
+        return result
+
+    def loadWidgets(self):
+        self.filled=False
+        super().loadWidgets()
+
+    def saveDataWidgets(self):
+        result=super().saveDataWidgets()
+        if result:
+            self.ID=getLastRowInsertID(self.table['name'])
+            self.itemAddedSignal.emit(self.ID)
+        return result
+
+
+class AddDoctorFormLayoutClone(AddFormLayoutClone):
+    """Edit base QFormLayout."""
+    itemAddedSignal = QtCore.pyqtSignal(int)
+
+    def __init__(self, mainUI, table, ID):
+        super().__init__(mainUI,table,ID)
+
+
+    def getSaveSql(self):
+        sql1 = None
+        d = self.getEntriesDic()
+        if d:
+            #the main query adding the doctor
+            columns = ",\n".join([key for key in d])
+            if self.table['patientID']: columns = columns + ",\n" + "PATIENT_ID"
+            columns = "(" + columns + ")"
+            values = ",\n".join(["\"" + value + "\"" for key, value in d.items()])
+            if self.table['patientID']: values = values + ",\n\"" + str(self.mainUI.patientID) + "\""
+            values = "(" + values + ")"
+            sql1 = "INSERT INTO\n" + self.table['name'] + "\n" + columns + "\nVALUES\n" + values
+            sql1+=";\n" #end of first query
+
+        return sql1
+
+    def getSaveSql2(self):
+        # the second query adding it to referring doctors
+        sql2 = 'INSERT INTO REFERRING_DOCTORS (PATIENT_ID, DOCTOR_ID, USE) VALUES ({},{},1)'.format(
+            self.mainUI.patientID, self.ID
+        )
+        return sql2
+
+    def saveDataWidgets(self):
+        # Save it to SQL
+        result1 = executeScript(self.getSaveSql())
+        if result1:
+            self.ID=getLastRowInsertID('DOCTORS')
+            result2=executeScript(self.getSaveSql2())
+            if result2:
+                self.itemAddedSignal.emit(self.ID)
+                return result2
+        return None
+
+

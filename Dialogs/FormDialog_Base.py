@@ -1,7 +1,8 @@
-from PyQt6.QtWidgets import QDialog, QDialogButtonBox
+from PyQt6.QtWidgets import QDialog, QDialogButtonBox, QPushButton
 from PyQt6 import QtCore
 
-from FormLayout.EditFormLayout_Clone import EditFormLayoutClone
+from FormLayout.FormLayout_Base import EditFormLayoutClone
+from FormLayout.FormLayout_Base import AddFormLayoutClone
 
 class FormDialogBase(QDialog):
 
@@ -47,10 +48,20 @@ class EditFormDialog(FormDialogBase):
 
     def __init__(self, parent,table,ID):
         super(EditFormDialog, self).__init__(parent,table,ID)
+        delete_button=QPushButton();delete_button.setText('DELETE')
+        delete_button.clicked.connect(self.DeleteClicked)
+        self.buttonBox.addButton(delete_button,QDialogButtonBox.ButtonRole.DestructiveRole)
 
 
     def createLayout(self):
         self.layout = EditFormLayoutClone(self.mainUI,self.table,self.ID)
 
+class AddFormDialog(FormDialogBase):
 
+    def __init__(self, parent,table,ID):
+        super(AddFormDialog, self).__init__(parent,table,ID)
+
+
+    def createLayout(self):
+        self.layout = AddFormLayoutClone(self.mainUI,self.table,self.ID)
 

@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 def addQuotes(s):
-    s='\"'+s+'\"'
+    if type(s) == str: s='\"'+s+'\"'
     return s
 def getTimeStamp():
     t = datetime.now()

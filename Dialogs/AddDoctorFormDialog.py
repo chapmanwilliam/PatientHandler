@@ -1,5 +1,5 @@
 from Dialogs.FormDialog_Base import FormDialogBase
-from FormLayout.AddDoctorFormLayout_Clone import AddDoctorFormLayoutClone
+from FormLayout.FormLayout_Base import AddDoctorFormLayoutClone
 
 class AddDoctorFormDialog(FormDialogBase):
 
